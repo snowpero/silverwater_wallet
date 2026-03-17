@@ -187,6 +187,26 @@ button {
   gap: 5px;
 }
 
+.receipt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.receipt-meta {
+  flex: 1;
+}
+
+.delete-button {
+  border: 1px solid #e0b8b8;
+  background: linear-gradient(180deg, #fff3f3, #ffe6e6);
+  color: #9a2f2f;
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+}
+
 .test-pass {
   color: #1f7a39;
   font-weight: 700;

@@ -2,6 +2,8 @@ const amountStrongKeywordPattern = /(총액|합계|결제금액|받을금액|카
 const amountMediumKeywordPattern = /(결제|금액|청구|판매금액|거래금액)/;
 const amountNegativeKeywordPattern = /(부가세|면세|공급가액|할인|적립|거스름돈|현금영수증|봉사료|수수료)/;
 const amountNoiseKeywordPattern = /(사업자|전화|TEL|카드번호|승인번호|가맹점|대표|주소|영수증번호)/i;
+const amountExcludeLinePattern = /(사업자번호|사업자등록번호|승인번호|가맹점번호|카드번호|전화번호|연락처|주소|홈페이지|영수증번호|주문번호|거래번호|주문코드|포인트리|ID|아이디)/i;
+const amountDirectLabelPattern = /(총\s*결\s*제\s*금\s*액|총\s*액|합\s*계\s*금\s*액|합\s*계|결\s*제\s*금\s*액|최\s*종\s*금\s*액|받\s*을\s*금\s*액|이\s*용\s*금\s*액)/i;
 
 function normalizeText(text) {
   return String(text || "").replace(/\s+/g, " ").trim();
@@ -25,6 +27,40 @@ function parseAmountCandidates(line) {
       };
     })
     .filter((candidate) => Number.isFinite(candidate.value) && candidate.value >= 0);
+}
+
+function findLabeledAmount(lines) {
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const line = lines[lineIndex];
+
+    if (amountExcludeLinePattern.test(line)) {
+      continue;
+    }
+
+    if (!amountDirectLabelPattern.test(line)) {
+      continue;
+    }
+
+    const inLineCandidates = parseAmountCandidates(line)
+      .map((item) => item.value)
+      .filter((value) => value > 0 && !isLikelyNoiseNumber(value));
+    if (inLineCandidates.length) {
+      return Math.max(...inLineCandidates);
+    }
+
+    const nextLine = lines[lineIndex + 1];
+    if (!nextLine || amountExcludeLinePattern.test(nextLine)) {
+      continue;
+    }
+    const nextLineCandidates = parseAmountCandidates(nextLine)
+      .map((item) => item.value)
+      .filter((value) => value > 0 && !isLikelyNoiseNumber(value));
+    if (nextLineCandidates.length) {
+      return Math.max(...nextLineCandidates);
+    }
+  }
+
+  return null;
 }
 
 function isLikelyNoiseNumber(value) {
@@ -81,10 +117,19 @@ export function extractTotalAmount(rawText) {
     .map((line) => normalizeText(line))
     .filter(Boolean);
 
+  const labeledAmount = findLabeledAmount(lines);
+  if (labeledAmount !== null) {
+    return labeledAmount;
+  }
+
   const lineCount = lines.length;
   let bestCandidate = null;
 
   lines.forEach((line, lineIndex) => {
+    if (amountExcludeLinePattern.test(line)) {
+      return;
+    }
+
     const candidates = parseAmountCandidates(line);
     if (!candidates.length) {
       if (amountStrongKeywordPattern.test(line) && lines[lineIndex + 1]) {
@@ -152,6 +197,7 @@ export function extractPurchaseDate(rawText) {
   const text = String(rawText || "");
   const normalized = text.replace(/\s+/g, " ");
   const patterns = [
+    /(\d{2})[./-](\d{1,2})[./-](\d{1,2})\s+\d{1,2}:\d{2}(?::\d{2})?/g,
     /(20\d{2})[./-](\d{1,2})[./-](\d{1,2})/g,
     /(20\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일/g,
     /(\d{2})[./-](\d{1,2})[./-](\d{1,2})/g,
@@ -167,7 +213,7 @@ export function extractPurchaseDate(rawText) {
       let month = match[2];
       let day = match[3];
 
-      if (patternIndex === 2) {
+      if (patternIndex === 0 || patternIndex === 3) {
         const currentCentury = new Date().getFullYear().toString().slice(0, 2);
         year = `${currentCentury}${year}`;
       }

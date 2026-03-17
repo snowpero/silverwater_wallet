@@ -43,3 +43,15 @@ export async function getAllReceipts() {
     request.onerror = () => reject(request.error);
   });
 }
+
+export async function deleteReceiptById(receiptId) {
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(RECEIPTS_STORE, "readwrite");
+    const store = transaction.objectStore(RECEIPTS_STORE);
+    const request = store.delete(receiptId);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}

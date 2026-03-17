@@ -1,4 +1,4 @@
-import { saveReceipt, getAllReceipts } from "./db.js";
+import { saveReceipt, getAllReceipts, deleteReceiptById } from "./db.js";
 import { extractReceiptTextFromImage } from "./ocr.js";
 import { extractTotalAmount, extractPurchaseDate } from "./parser.js";
 import {
@@ -61,8 +61,16 @@ function renderDailyList(groups) {
   elements.dailyList.innerHTML = groups
     .map((group) => {
       const detail = group.items
-        .map((item) => `${item.storeName || "상호 미입력"}: ${formatKrw(item.totalAmount)}`)
-        .join("<br />");
+        .map((item) => {
+          const storeName = item.storeName || "상호 미입력";
+          return `
+            <div class="receipt-row">
+              <div class="receipt-meta">${storeName}: ${formatKrw(item.totalAmount)}</div>
+              <button class="delete-button" type="button" data-receipt-id="${item.id}">삭제</button>
+            </div>
+          `;
+        })
+        .join("");
 
       return `
         <article class="daily-item">
@@ -78,6 +86,39 @@ function renderDailyList(groups) {
       `;
     })
     .join("");
+}
+
+async function handleDailyListClick(event) {
+  const deleteButton = event.target.closest("[data-receipt-id]");
+  if (!deleteButton) {
+    return;
+  }
+
+  const receiptId = deleteButton.getAttribute("data-receipt-id");
+  if (!receiptId) {
+    return;
+  }
+
+  const targetReceipt = state.receipts.find((item) => item.id === receiptId);
+  if (!targetReceipt) {
+    alert("삭제할 내역을 찾지 못했습니다.");
+    return;
+  }
+
+  const confirmMessage = `정말 삭제할까요?\n${targetReceipt.purchaseDate} / ${formatKrw(targetReceipt.totalAmount)}`;
+  const shouldDelete = window.confirm(confirmMessage);
+  if (!shouldDelete) {
+    return;
+  }
+
+  try {
+    await deleteReceiptById(receiptId);
+    state.receipts = state.receipts.filter((item) => item.id !== receiptId);
+    elements.ocrStatus.textContent = "삭제 완료. 통계가 갱신되었습니다.";
+    render();
+  } catch (error) {
+    alert(`삭제에 실패했습니다: ${error.message}`);
+  }
 }
 
 function renderParserTests() {
@@ -249,6 +290,7 @@ function bindEvents() {
   elements.receiptImage.addEventListener("change", handleImagePreviewChange);
   elements.ocrButton.addEventListener("click", handleOcrClick);
   elements.receiptForm.addEventListener("submit", handleSubmit);
+  elements.dailyList.addEventListener("click", handleDailyListClick);
 }
 
 async function initialize() {
