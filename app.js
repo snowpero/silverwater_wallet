@@ -45,7 +45,8 @@ const elements = {
   dailyList: document.getElementById("dailyList"),
   monthlyChart: document.getElementById("monthlyChart"),
   parserTestResult: document.getElementById("parserTestResult"),
-  deployInfoBadge: document.getElementById("deployInfoBadge")
+  deployInfoBadge: document.getElementById("deployInfoBadge"),
+  forceRefreshButton: document.getElementById("forceRefreshButton")
 };
 
 function createId() {
@@ -226,6 +227,12 @@ function renderDeployInfo() {
     `배포 ${RELEASE_META.releaseVersionDate} | ${RELEASE_META.releaseTimeKst} KST | ${RELEASE_META.releaseCommitShort}`;
 }
 
+function handleForceRefresh() {
+  const currentUrl = new URL(window.location.href);
+  currentUrl.searchParams.set("refresh", String(Date.now()));
+  window.location.href = currentUrl.toString();
+}
+
 function renderChart(labels, values) {
   if (state.chart) {
     state.chart.destroy();
@@ -374,6 +381,9 @@ function bindEvents() {
   elements.ocrButton.addEventListener("click", handleOcrClick);
   elements.receiptForm.addEventListener("submit", handleSubmit);
   elements.dailyList.addEventListener("click", handleDailyListClick);
+  if (elements.forceRefreshButton) {
+    elements.forceRefreshButton.addEventListener("click", handleForceRefresh);
+  }
 }
 
 async function initialize() {
