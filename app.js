@@ -20,7 +20,9 @@ const state = {
   receipts: [],
   selectedPeriod: "thisMonth",
   chart: null,
-  selectedImageDataUrl: ""
+  selectedImageDataUrl: "",
+  editingReceiptId: null,
+  editingStoreName: ""
 };
 
 const elements = {
@@ -70,10 +72,33 @@ function renderDailyList(groups) {
       const detail = group.items
         .map((item) => {
           const storeName = item.storeName || "상호 미입력";
+          const isEditing = state.editingReceiptId === item.id;
+
+          if (isEditing) {
+            return `
+              <div class="receipt-row receipt-row-editing">
+                <input
+                  class="inline-edit-input"
+                  type="text"
+                  data-edit-input-id="${item.id}"
+                  value="${state.editingStoreName.replace(/"/g, "&quot;")}"
+                  placeholder="상호명을 입력하세요"
+                />
+                <div class="inline-edit-actions">
+                  <button class="edit-save-button" type="button" data-action="save-store" data-receipt-id="${item.id}">저장</button>
+                  <button class="edit-cancel-button" type="button" data-action="cancel-store" data-receipt-id="${item.id}">취소</button>
+                </div>
+              </div>
+            `;
+          }
+
           return `
             <div class="receipt-row">
               <div class="receipt-meta">${storeName}: ${formatKrw(item.totalAmount)}</div>
-              <button class="delete-button" type="button" data-receipt-id="${item.id}">삭제</button>
+              <div class="inline-actions">
+                <button class="edit-button" type="button" data-action="start-edit-store" data-receipt-id="${item.id}">수정</button>
+                <button class="delete-button" type="button" data-action="delete-receipt" data-receipt-id="${item.id}">삭제</button>
+              </div>
             </div>
           `;
         })
@@ -96,12 +121,13 @@ function renderDailyList(groups) {
 }
 
 async function handleDailyListClick(event) {
-  const deleteButton = event.target.closest("[data-receipt-id]");
-  if (!deleteButton) {
+  const actionButton = event.target.closest("[data-action][data-receipt-id]");
+  if (!actionButton) {
     return;
   }
 
-  const receiptId = deleteButton.getAttribute("data-receipt-id");
+  const action = actionButton.getAttribute("data-action");
+  const receiptId = actionButton.getAttribute("data-receipt-id");
   if (!receiptId) {
     return;
   }
@@ -109,6 +135,47 @@ async function handleDailyListClick(event) {
   const targetReceipt = state.receipts.find((item) => item.id === receiptId);
   if (!targetReceipt) {
     alert("삭제할 내역을 찾지 못했습니다.");
+    return;
+  }
+
+  if (action === "start-edit-store") {
+    state.editingReceiptId = receiptId;
+    state.editingStoreName = targetReceipt.storeName || "";
+    render();
+    return;
+  }
+
+  if (action === "cancel-store") {
+    state.editingReceiptId = null;
+    state.editingStoreName = "";
+    render();
+    return;
+  }
+
+  if (action === "save-store") {
+    const inputElement = elements.dailyList.querySelector(`[data-edit-input-id="${receiptId}"]`);
+    const updatedStoreName = String(inputElement?.value || "").trim();
+
+    const updatedReceipt = {
+      ...targetReceipt,
+      storeName: updatedStoreName,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      await saveReceipt(updatedReceipt);
+      state.receipts = state.receipts.map((item) => (item.id === receiptId ? updatedReceipt : item));
+      state.editingReceiptId = null;
+      state.editingStoreName = "";
+      elements.ocrStatus.textContent = "상호명 수정 완료.";
+      render();
+    } catch (error) {
+      alert(`상호명 수정에 실패했습니다: ${error.message}`);
+    }
+    return;
+  }
+
+  if (action !== "delete-receipt") {
     return;
   }
 

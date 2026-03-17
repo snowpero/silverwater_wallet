@@ -198,6 +198,52 @@ button {
   flex: 1;
 }
 
+.inline-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.edit-button {
+  border: 1px solid #c8d8e4;
+  background: linear-gradient(180deg, #f5fbff, #e9f6ff);
+  color: #2e5f78;
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+}
+
+.receipt-row-editing {
+  align-items: stretch;
+}
+
+.inline-edit-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.inline-edit-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.edit-save-button {
+  border: 1px solid #b9d7c3;
+  background: linear-gradient(180deg, #f1fbf4, #e2f4e8);
+  color: #21603a;
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+}
+
+.edit-cancel-button {
+  border: 1px solid #d7d2ca;
+  background: linear-gradient(180deg, #ffffff, #f2eee8);
+  color: #665747;
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+}
+
 .delete-button {
   border: 1px solid #e0b8b8;
   background: linear-gradient(180deg, #fff3f3, #ffe6e6);
