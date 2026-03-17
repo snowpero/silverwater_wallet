@@ -10,6 +10,12 @@ import {
 } from "./stats.js";
 import { runParserSamples } from "./samples.js";
 
+const RELEASE_META = {
+  releaseVersionDate: "2026.03.17",
+  releaseTimeKst: "12:08",
+  releaseCommitShort: "7b4b876"
+};
+
 const state = {
   receipts: [],
   selectedPeriod: "thisMonth",
@@ -36,7 +42,8 @@ const elements = {
   rawText: document.getElementById("rawText"),
   dailyList: document.getElementById("dailyList"),
   monthlyChart: document.getElementById("monthlyChart"),
-  parserTestResult: document.getElementById("parserTestResult")
+  parserTestResult: document.getElementById("parserTestResult"),
+  deployInfoBadge: document.getElementById("deployInfoBadge")
 };
 
 function createId() {
@@ -144,6 +151,11 @@ function renderParserTests() {
     .join("");
 }
 
+function renderDeployInfo() {
+  elements.deployInfoBadge.textContent =
+    `배포 ${RELEASE_META.releaseVersionDate} | ${RELEASE_META.releaseTimeKst} KST | ${RELEASE_META.releaseCommitShort}`;
+}
+
 function renderChart(labels, values) {
   if (state.chart) {
     state.chart.destroy();
@@ -196,6 +208,7 @@ function render() {
   renderDailyList(groups);
   renderChart(monthlySeries.labels, monthlySeries.values);
   renderParserTests();
+  renderDeployInfo();
 }
 
 async function loadReceipts() {
