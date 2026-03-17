@@ -152,6 +152,9 @@ function renderParserTests() {
 }
 
 function renderDeployInfo() {
+  if (!elements.deployInfoBadge) {
+    return;
+  }
   elements.deployInfoBadge.textContent =
     `배포 ${RELEASE_META.releaseVersionDate} | ${RELEASE_META.releaseTimeKst} KST | ${RELEASE_META.releaseCommitShort}`;
 }
@@ -307,8 +310,14 @@ function bindEvents() {
 }
 
 async function initialize() {
+  renderDeployInfo();
   bindEvents();
   await loadReceipts();
 }
 
-initialize();
+initialize().catch((error) => {
+  renderDeployInfo();
+  if (elements.ocrStatus) {
+    elements.ocrStatus.textContent = `초기 로딩 오류: ${error.message}`;
+  }
+});
