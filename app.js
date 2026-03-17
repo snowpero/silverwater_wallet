@@ -12,9 +12,11 @@ import { runParserSamples } from "./samples.js";
 
 const RELEASE_META = {
   releaseVersionDate: "2026.03.17",
-  releaseTimeKst: "12:08",
-  releaseCommitShort: "7b4b876"
+  releaseTimeKst: "12:18",
+  releaseCommitShort: "16245f4"
 };
+
+const SEEN_RELEASE_STORAGE_KEY = "silverwater_wallet_seen_release";
 
 const state = {
   receipts: [],
@@ -227,7 +229,27 @@ function renderDeployInfo() {
     `배포 ${RELEASE_META.releaseVersionDate} | ${RELEASE_META.releaseTimeKst} KST | ${RELEASE_META.releaseCommitShort}`;
 }
 
+function getCurrentReleaseKey() {
+  return `${RELEASE_META.releaseVersionDate}-${RELEASE_META.releaseCommitShort}`;
+}
+
+function syncRefreshButtonVisibility() {
+  if (!elements.forceRefreshButton) {
+    return;
+  }
+  const seenRelease = window.localStorage.getItem(SEEN_RELEASE_STORAGE_KEY);
+  const currentRelease = getCurrentReleaseKey();
+  if (seenRelease === currentRelease) {
+    elements.forceRefreshButton.classList.add("hidden");
+  } else {
+    elements.forceRefreshButton.classList.remove("hidden");
+  }
+}
+
 function handleForceRefresh() {
+  const currentRelease = getCurrentReleaseKey();
+  window.localStorage.setItem(SEEN_RELEASE_STORAGE_KEY, currentRelease);
+  syncRefreshButtonVisibility();
   const currentUrl = new URL(window.location.href);
   currentUrl.searchParams.set("refresh", String(Date.now()));
   window.location.href = currentUrl.toString();
@@ -286,6 +308,7 @@ function render() {
   renderChart(monthlySeries.labels, monthlySeries.values);
   renderParserTests();
   renderDeployInfo();
+  syncRefreshButtonVisibility();
 }
 
 async function loadReceipts() {
