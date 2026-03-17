@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>은수 지갑</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <h1>은수 지갑</h1>
+      <p>영수증 사진에서 금액을 추출해 날짜별로 정리하는 로컬 가계부</p>
+    </header>
+
+    <section class="card">
+      <div class="section-title-row">
+        <h2>요약</h2>
+        <label class="filter-label" for="periodFilter">기간</label>
+        <select id="periodFilter">
+          <option value="thisMonth" selected>이번달</option>
+          <option value="last3Months">최근 3개월</option>
+          <option value="all">전체</option>
+        </select>
+      </div>
+      <div class="kpi-grid">
+        <article class="kpi-item">
+          <span class="kpi-label">이번달 총지출</span>
+          <strong id="thisMonthTotal">0원</strong>
+        </article>
+        <article class="kpi-item">
+          <span class="kpi-label">지난달 총지출</span>
+          <strong id="lastMonthTotal">0원</strong>
+        </article>
+        <article class="kpi-item">
+          <span class="kpi-label">전월 대비</span>
+          <strong id="monthDelta">0원</strong>
+          <small id="monthDeltaRate">비교불가</small>
+        </article>
+        <article class="kpi-item">
+          <span class="kpi-label">결제일 기준 일평균</span>
+          <strong id="dailyAverage">0원</strong>
+        </article>
+        <article class="kpi-item">
+          <span class="kpi-label">총 누적 지출</span>
+          <strong id="allTimeTotal">0원</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>월별 사용금액</h2>
+      <canvas id="monthlyChart" height="180"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>영수증 등록</h2>
+      <form id="receiptForm" class="form-grid">
+        <label>
+          영수증 이미지
+          <input id="receiptImage" type="file" accept="image/*" required />
+        </label>
+        <div class="button-row">
+          <button type="button" id="ocrButton">OCR 추출</button>
+        </div>
+        <p id="ocrStatus" class="status-text">이미지를 선택한 뒤 OCR 추출을 눌러주세요.</p>
+        <img id="previewImage" class="preview-image hidden" alt="영수증 미리보기" />
+
+        <label>
+          결제일
+          <input id="purchaseDate" type="date" required />
+        </label>
+        <label>
+          총 금액(원)
+          <input id="totalAmount" type="number" min="0" step="1" required />
+        </label>
+        <label>
+          상호명(선택)
+          <input id="storeName" type="text" placeholder="예: 스타카페" />
+        </label>
+
+        <label class="full-width">
+          OCR 원문
+          <textarea id="rawText" rows="5" placeholder="OCR 결과가 표시됩니다."></textarea>
+        </label>
+
+        <div class="button-row full-width">
+          <button type="submit">저장</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>날짜별 내역</h2>
+      <div id="dailyList" class="daily-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>파서 검증 결과</h2>
+      <div id="parserTestResult" class="daily-list"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
