@@ -30,6 +30,8 @@ function parseAmountCandidates(line) {
 }
 
 function findLabeledAmount(lines) {
+  let bestLabeledCandidate = null;
+
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const line = lines[lineIndex];
 
@@ -41,11 +43,22 @@ function findLabeledAmount(lines) {
       continue;
     }
 
-    const inLineCandidates = parseAmountCandidates(line)
-      .map((item) => item.value)
-      .filter((value) => value > 0 && !isLikelyNoiseNumber(value));
+    const inLineCandidates = parseAmountCandidates(line).filter(
+      (item) => item.value > 0 && !isLikelyNoiseNumber(item.value)
+    );
     if (inLineCandidates.length) {
-      return Math.max(...inLineCandidates);
+      const inLineValue = Math.max(...inLineCandidates.map((item) => item.value));
+      const lineBonus = /(총\s*결\s*제\s*금\s*액|최\s*종\s*금\s*액|합\s*계\s*금\s*액|합\s*계|총\s*액)/i.test(line)
+        ? 90_000
+        : /(결\s*제\s*금\s*액|받\s*을\s*금\s*액|카드결제)/i.test(line)
+          ? 55_000
+          : /(이\s*용\s*금\s*액)/i.test(line)
+            ? 20_000
+            : 0;
+      const score = inLineValue + lineBonus - lineIndex;
+      if (!bestLabeledCandidate || score > bestLabeledCandidate.score) {
+        bestLabeledCandidate = { value: inLineValue, score };
+      }
     }
 
     const nextLine = lines[lineIndex + 1];
@@ -56,11 +69,15 @@ function findLabeledAmount(lines) {
       .map((item) => item.value)
       .filter((value) => value > 0 && !isLikelyNoiseNumber(value));
     if (nextLineCandidates.length) {
-      return Math.max(...nextLineCandidates);
+      const nextLineValue = Math.max(...nextLineCandidates);
+      const score = nextLineValue + 35_000 - lineIndex;
+      if (!bestLabeledCandidate || score > bestLabeledCandidate.score) {
+        bestLabeledCandidate = { value: nextLineValue, score };
+      }
     }
   }
 
-  return null;
+  return bestLabeledCandidate ? bestLabeledCandidate.value : null;
 }
 
 function isLikelyNoiseNumber(value) {
@@ -193,27 +210,99 @@ function isValidDateValue(year, month, day) {
   );
 }
 
+const datePositiveContextPattern = /(결\s*제\s*일\s*(시|자)?|거\s*래\s*일\s*(시|자)?|사\s*용\s*일\s*시|승\s*인\s*일\s*시|매\s*입\s*일\s*시)/i;
+const dateNegativeContextPattern = /(사업자|사업자등록번호|대표|가맹점|주소|전화|고객센터|카드번호|승인번호|영수증번호|주문번호|주문일\s*(시|자)?|배송일\s*(시|자)?)/i;
+const dateTimeTokenPattern = /\d{1,2}:\d{2}(?::\d{2})?/;
+
+function buildDateContextWindow(text, position, radius = 26) {
+  const from = Math.max(0, position - radius);
+  const to = Math.min(text.length, position + radius);
+  return text.slice(from, to);
+}
+
+function buildDateScore(candidate, sourceText) {
+  const currentYear = new Date().getFullYear();
+  const year = Number(candidate.value.slice(0, 4));
+  const yearGap = Math.abs(currentYear - year);
+  const context = buildDateContextWindow(sourceText, candidate.position);
+  const backwardContext = sourceText.slice(Math.max(0, candidate.position - 24), candidate.position);
+  const forwardContext = sourceText.slice(candidate.position, Math.min(sourceText.length, candidate.position + 12));
+
+  let score = candidate.baseScore;
+
+  if (datePositiveContextPattern.test(backwardContext)) {
+    score += 320;
+  } else if (datePositiveContextPattern.test(context)) {
+    score += 100;
+  }
+
+  if (dateNegativeContextPattern.test(backwardContext) || dateNegativeContextPattern.test(forwardContext)) {
+    score -= 480;
+  } else if (dateNegativeContextPattern.test(context)) {
+    score -= 150;
+  }
+
+  if (dateTimeTokenPattern.test(candidate.matchedText)) {
+    score += 130;
+  }
+
+  if (yearGap === 0) {
+    score += 45;
+  } else if (yearGap === 1) {
+    score += 20;
+  } else if (yearGap >= 3) {
+    score -= Math.min(70, yearGap * 12);
+  }
+
+  return score;
+}
+
 export function extractPurchaseDate(rawText) {
   const text = String(rawText || "");
   const normalized = text.replace(/\s+/g, " ");
   const patterns = [
-    /(\d{2})[./-](\d{1,2})[./-](\d{1,2})\s+\d{1,2}:\d{2}(?::\d{2})?/g,
-    /(20\d{2})[./-](\d{1,2})[./-](\d{1,2})/g,
-    /(20\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일/g,
-    /(\d{2})[./-](\d{1,2})[./-](\d{1,2})/g,
-    /(20\d{2})(\d{2})(\d{2})/g
+    {
+      regex: /(\d{2})[./-](\d{1,2})[./-](\d{1,2})\s+\d{1,2}:\d{2}(?::\d{2})?/g,
+      shortYear: true,
+      baseScore: 115
+    },
+    {
+      regex: /(20\d{2})[./-](\d{1,2})[./-](\d{1,2})\s+\d{1,2}:\d{2}(?::\d{2})?/g,
+      shortYear: false,
+      baseScore: 145
+    },
+    {
+      regex: /(20\d{2})[./-](\d{1,2})[./-](\d{1,2})/g,
+      shortYear: false,
+      baseScore: 108
+    },
+    {
+      regex: /(20\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일/g,
+      shortYear: false,
+      baseScore: 100
+    },
+    {
+      regex: /(\d{2})[./-](\d{1,2})[./-](\d{1,2})/g,
+      shortYear: true,
+      baseScore: 88
+    },
+    {
+      regex: /(20\d{2})(\d{2})(\d{2})/g,
+      shortYear: false,
+      baseScore: 68
+    }
   ];
 
   const candidates = [];
 
-  patterns.forEach((pattern, patternIndex) => {
-    const matches = normalized.matchAll(pattern);
+  patterns.forEach((patternConfig) => {
+    const matches = normalized.matchAll(patternConfig.regex);
     for (const match of matches) {
       let year = match[1];
       let month = match[2];
       let day = match[3];
 
-      if (patternIndex === 0 || patternIndex === 3) {
+      if (patternConfig.shortYear) {
         const currentCentury = new Date().getFullYear().toString().slice(0, 2);
         year = `${currentCentury}${year}`;
       }
@@ -224,7 +313,9 @@ export function extractPurchaseDate(rawText) {
 
       candidates.push({
         value: formatDateValue(year, month, day),
-        position: match.index || 0
+        position: match.index || 0,
+        matchedText: match[0] || "",
+        baseScore: patternConfig.baseScore
       });
     }
   });
@@ -233,6 +324,17 @@ export function extractPurchaseDate(rawText) {
     return null;
   }
 
-  const sortedCandidates = candidates.sort((a, b) => a.position - b.position);
+  const sortedCandidates = candidates
+    .map((candidate) => ({
+      ...candidate,
+      score: buildDateScore(candidate, normalized)
+    }))
+    .sort((a, b) => {
+      if (a.score !== b.score) {
+        return b.score - a.score;
+      }
+      return a.position - b.position;
+    });
+
   return sortedCandidates[0].value;
 }
