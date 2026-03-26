@@ -57,13 +57,14 @@
       <h2>영수증 등록</h2>
       <form id="receiptForm" class="form-grid">
         <label>
-          영수증 이미지
-          <input id="receiptImage" type="file" accept="image/*" required />
+          영수증 이미지(선택)
+          <input id="receiptImage" type="file" accept="image/*" />
         </label>
         <div class="button-row">
           <button type="button" id="ocrButton">OCR 추출</button>
         </div>
-        <p id="ocrStatus" class="status-text">이미지를 선택한 뒤 OCR 추출을 눌러주세요.</p>
+        <p class="status-text">수동 등록: 사진 없이도 결제일과 총 금액을 입력한 뒤 저장할 수 있습니다.</p>
+        <p id="ocrStatus" class="status-text">이미지를 선택해 OCR을 사용하거나, 사진 없이 결제일/총 금액을 입력해 수동 등록할 수 있습니다.</p>
         <img id="previewImage" class="preview-image hidden" alt="영수증 미리보기" />
 
         <label>
