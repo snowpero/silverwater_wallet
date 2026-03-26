@@ -73,36 +73,47 @@ function renderDailyList(groups) {
   elements.dailyList.innerHTML = groups
     .map((group) => {
       const detail = group.items
-        .map((item) => {
+        .map((item, index) => {
           const storeName = item.storeName || "상호 미입력";
           const isEditing = state.editingReceiptId === item.id;
+          const itemOrder = index + 1;
 
           if (isEditing) {
             return `
-              <div class="receipt-row receipt-row-editing">
-                <input
-                  class="inline-edit-input"
-                  type="text"
-                  data-edit-input-id="${item.id}"
-                  value="${state.editingStoreName.replace(/"/g, "&quot;")}"
-                  placeholder="상호명을 입력하세요"
-                />
-                <div class="inline-edit-actions">
-                  <button class="edit-save-button" type="button" data-action="save-store" data-receipt-id="${item.id}">저장</button>
-                  <button class="edit-cancel-button" type="button" data-action="cancel-store" data-receipt-id="${item.id}">취소</button>
+              <article class="receipt-item-card">
+                <div class="receipt-item-head">
+                  <span class="receipt-item-index">${itemOrder}건</span>
                 </div>
-              </div>
+                <div class="receipt-row receipt-row-editing">
+                  <input
+                    class="inline-edit-input"
+                    type="text"
+                    data-edit-input-id="${item.id}"
+                    value="${state.editingStoreName.replace(/"/g, "&quot;")}"
+                    placeholder="상호명을 입력하세요"
+                  />
+                  <div class="inline-edit-actions">
+                    <button class="edit-save-button" type="button" data-action="save-store" data-receipt-id="${item.id}">저장</button>
+                    <button class="edit-cancel-button" type="button" data-action="cancel-store" data-receipt-id="${item.id}">취소</button>
+                  </div>
+                </div>
+              </article>
             `;
           }
 
           return `
-            <div class="receipt-row">
-              <div class="receipt-meta">${storeName}: ${formatKrw(item.totalAmount)}</div>
-              <div class="inline-actions">
-                <button class="edit-button" type="button" data-action="start-edit-store" data-receipt-id="${item.id}">수정</button>
-                <button class="delete-button" type="button" data-action="delete-receipt" data-receipt-id="${item.id}">삭제</button>
+            <article class="receipt-item-card">
+              <div class="receipt-item-head">
+                <span class="receipt-item-index">${itemOrder}건</span>
               </div>
-            </div>
+              <div class="receipt-row">
+                <div class="receipt-meta">${storeName}: ${formatKrw(item.totalAmount)}</div>
+                <div class="inline-actions">
+                  <button class="edit-button" type="button" data-action="start-edit-store" data-receipt-id="${item.id}">수정</button>
+                  <button class="delete-button" type="button" data-action="delete-receipt" data-receipt-id="${item.id}">삭제</button>
+                </div>
+              </div>
+            </article>
           `;
         })
         .join("");
@@ -115,7 +126,7 @@ function renderDailyList(groups) {
           </div>
           <div class="daily-detail">
             <span>건수: ${group.items.length}건</span>
-            <span>${detail}</span>
+            <div class="receipt-items">${detail}</div>
           </div>
         </article>
       `;
