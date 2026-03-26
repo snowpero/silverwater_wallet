@@ -193,12 +193,16 @@ button {
 }
 
 .receipt-item-card {
-  border: 1px solid #eadfce;
+  border: 1px solid #cfae8a;
   border-radius: 10px;
-  background: #fffdf9;
+  background: #fffaf3;
   padding: 8px 10px;
   display: grid;
   gap: 6px;
+}
+
+.receipt-item-card + .receipt-item-card {
+  border-top: 2px solid #c3a17d;
 }
 
 .receipt-item-head {

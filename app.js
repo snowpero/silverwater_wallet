@@ -11,9 +11,9 @@ import {
 import { runParserSamples } from "./samples.js";
 
 const RELEASE_META = {
-  releaseVersionDate: "2026.03.17",
-  releaseTimeKst: "12:18",
-  releaseCommitShort: "16245f4"
+  releaseVersionDate: "2026.03.26",
+  releaseTimeKst: "13:16",
+  releaseCommitShort: "1a8fac7"
 };
 
 const SEEN_RELEASE_STORAGE_KEY = "silverwater_wallet_seen_release";
